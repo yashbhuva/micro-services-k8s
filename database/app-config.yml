@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  DB_USER: postgres
+  DB_NAME: postgres
+  POSTGRES_PORT: "5432"
+  FLASK_ENV: production
+  AUTH_SERVICE_NAME: auth-service
+  AUTH_SERVICE_PORT: "8000"
