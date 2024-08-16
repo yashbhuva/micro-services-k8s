@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-service
+  labels:
+   tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: todo-service
+  minReadySeconds: 10
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      name: todo-service
+      labels:
+        app: todo-service
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+          runAsUser: 2000
+          runAsGroup: 3000
+          fsGroup: 2000
+      containers:
+      - image: yashbhuva/todo:v1
+        name: todo-service
+        imagePullPolicy: Always  
+        ports:
+        - containerPort: 5000
+          protocol: TCP
+        readinessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+        livenessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+        env:
+        - name: POSTGRES_ENABLED
+          value: "1"
+        - name: DB_HOST
+          value: "todo-db-service"
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DB_USER
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DB_NAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: POSTGRES_PASSWORD
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: POSTGRES_PORT
+        - name: AUTH_SERVICE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: AUTH_SERVICE_NAME
+        - name: AUTH_SERVICE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: AUTH_SERVICE_PORT
+        volumeMounts:
+        - name: todo-code
+          mountPath: /app
+      volumes:
+      - name: todo-code
+        hostPath:
+          path: /example-micro-services/todo
+          type: Directory

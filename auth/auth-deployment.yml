@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth
+  labels:
+   tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth
+  minReadySeconds: 10
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      name: auth
+      labels:
+        app: auth
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+          runAsUser: 2000
+          runAsGroup: 3000
+          fsGroup: 2000
+      containers:
+      - image: yashbhuva/auth:v1
+        name: auth
+        imagePullPolicy: Always  
+        ports:
+        - containerPort: 8000
+          protocol: TCP
+        readinessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+        livenessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+        env:
+        - name: POSTGRES_ENABLED
+          value: "1"
+        - name: DB_HOST
+          value: "auth-db-service"
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DB_USER
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DB_NAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: POSTGRES_PASSWORD
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: POSTGRES_PORT
+        volumeMounts:
+        - name: auth-code
+          mountPath: /home/web/code
+      volumes:
+      - name: auth-code
+        hostPath:
+          path: /example-micro-services/auth
+          type: Directory
